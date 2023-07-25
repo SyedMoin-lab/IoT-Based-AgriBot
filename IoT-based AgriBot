@@ -1,0 +1,99 @@
+// IoT-Based AgriBot
+// Original Sketch Syed Moinuddin and his team.
+
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+// Wi-Fi credentials
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+// MQTT Broker credentials
+const char* mqttBroker = "MQTT_BROKER_IP";
+const int mqttPort = 1883;
+const char* mqttUsername = "MQTT_USERNAME";
+const char* mqttPassword = "MQTT_PASSWORD";
+
+// MQTT topics
+const char* soilMoistureTopic = "agribot/soil_moisture";
+const char* irrigationTopic = "agribot/irrigation";
+
+// Pin assignments
+const int soilMoisturePin = A0;
+const int waterPumpPin = 9;
+// Add pins for motor control
+
+// Global variables
+int soilMoistureValue;
+bool isWatering = false;
+
+// Initialize Wi-Fi and MQTT client
+WiFiClient wifiClient;
+PubSubClient mqttClient(wifiClient);
+
+void setupWiFi() {
+  // Connect to Wi-Fi
+  Serial.begin(9600);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  Serial.println("Connected to WiFi!");
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  // Handle incoming MQTT messages (if needed)
+}
+
+void setupMQTT() {
+  mqttClient.setServer(mqttBroker, mqttPort);
+  mqttClient.setCallback(callback);
+}
+
+void reconnectMQTT() {
+  while (!mqttClient.connected()) {
+    Serial.println("Connecting to MQTT...");
+    if (mqttClient.connect("AgriBot", mqttUsername, mqttPassword)) {
+      Serial.println("Connected to MQTT!");
+      mqttClient.subscribe(irrigationTopic);
+    } else {
+      Serial.print("MQTT connection failed, retrying in 5 seconds...");
+      delay(5000);
+    }
+  }
+}
+
+void setup() {
+  // Initialize pins
+  pinMode(soilMoisturePin, INPUT);
+  pinMode(waterPumpPin, OUTPUT);
+  // Add pin mode setup for motors
+  
+  // Initialize Wi-Fi and MQTT
+  setupWiFi();
+  setupMQTT();
+}
+
+void loop() {
+  if (!mqttClient.connected()) {
+    reconnectMQTT();
+  }
+  mqttClient.loop();
+
+  // Read soil moisture
+  soilMoistureValue = analogRead(soilMoisturePin);
+
+  // Publish soil moisture value to MQTT broker
+  char soilMoistureMessage[10];
+  sprintf(soilMoistureMessage, "%d", soilMoistureValue);
+  mqttClient.publish(soilMoistureTopic, soilMoistureMessage);
+
+  // Check if irrigation is needed and control the water pump
+  // Here, you'd have to implement your specific logic based on soil moisture thresholds
+
+  // Control the motors based on your AgriBot's movement strategy
+  // Implement the logic for the AgriBot's movements
+
+  delay(1000); // Adjust the delay based on your needs
+}
